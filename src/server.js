@@ -3,6 +3,8 @@ require("dotenv").config();
 
 const express = require("express");
 const cors = require("cors");
+const helmet = require("helmet");
+const { rateLimit } = require("express-rate-limit");
 
 const pool = require("./config/database");
 const pedidoRoutes = require("./routes/pedidoRoutes");
@@ -10,8 +12,38 @@ const errorMiddleware = require("./middlewares/errorMiddleware");
 
 const app = express();
 
-app.use(cors());
-app.use(express.json());
+// Segurança dos cabeçalhos HTTP
+app.use(helmet());
+
+// Configuração de CORS
+const origensPermitidas = process.env.CORS_ORIGIN
+    ? process.env.CORS_ORIGIN.split(",").map(origem => origem.trim())
+    : [];
+
+app.use(cors({
+    origin: (origem, callback) => {
+        if (!origem || origensPermitidas.length === 0 || origensPermitidas.includes(origem)) {
+            return callback(null, true);
+        }
+
+        return callback(new Error("Origem não permitida pelo CORS."));
+    }
+}));
+
+app.use(express.json({ limit: "10kb" }));
+
+// Limite geral: 100 requisições por IP a cada 15 minutos
+const limiter = rateLimit({
+    windowMs: 15 * 60 * 1000,
+    limit: 100,
+    standardHeaders: "draft-8",
+    legacyHeaders: false,
+    message: {
+        erro: "Limite de requisições excedido. Tente novamente mais tarde."
+    }
+});
+
+app.use(limiter);
 
 app.get("/", (req, res) => {
     res.status(200).json({
