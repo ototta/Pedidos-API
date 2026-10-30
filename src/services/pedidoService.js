@@ -1,12 +1,45 @@
-
 const pool = require("../config/database");
 
-async function listarPedidos() {
+async function listarPedidos(page = 1, limit = 10) {
+    const pagina = Number(page);
+    const limite = Number(limit);
+
+    if (
+        !Number.isInteger(pagina) ||
+        !Number.isInteger(limite) ||
+        pagina < 1 ||
+        limite < 1 ||
+        limite > 100
+    ) {
+        const error = new Error("Parâmetros de paginação inválidos.");
+        error.status = 400;
+        throw error;
+    }
+
+    const offset = (pagina - 1) * limite;
+
     const resultado = await pool.query(
-        "SELECT * FROM pedidos ORDER BY id DESC"
+        `SELECT * FROM pedidos
+         ORDER BY id DESC
+         LIMIT $1 OFFSET $2`,
+        [limite, offset]
     );
 
-    return resultado.rows;
+    const contagem = await pool.query(
+        "SELECT COUNT(*) FROM pedidos"
+    );
+
+    const total = Number(contagem.rows[0].count);
+
+    return {
+        dados: resultado.rows,
+        paginacao: {
+            pagina,
+            limite,
+            total,
+            totalPaginas: Math.ceil(total / limite)
+        }
+    };
 }
 
 async function criarPedido(dados) {

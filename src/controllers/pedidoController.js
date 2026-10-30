@@ -2,7 +2,12 @@ const pedidoService = require("../services/pedidoService");
 
 async function listar(req, res, next) {
     try {
-        const pedidos = await pedidoService.listarPedidos();
+        const { page, limit } = req.query;
+
+        const pedidos = await pedidoService.listarPedidos(
+            page || 1,
+            limit || 10
+        );
 
         return res.status(200).json(pedidos);
     } catch (error) {
