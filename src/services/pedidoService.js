@@ -1,3 +1,4 @@
+
 const pool = require("../config/database");
 
 async function listarPedidos() {
@@ -14,18 +15,37 @@ async function criarPedido(dados) {
         cep_origem,
         cep_destino,
         peso
-    } = dados;
+    } = dados || {};
 
     if (!cliente_nome || !cep_origem || !cep_destino || peso === undefined) {
-        throw new Error("Todos os campos são obrigatórios.");
+        const error = new Error("Todos os campos são obrigatórios.");
+        error.status = 400;
+        throw error;
     }
 
-    if (!/^\d{8}$/.test(cep_origem) || !/^\d{8}$/.test(cep_destino)) {
-        throw new Error("Os CEPs devem conter 8 números.");
+    if (
+        typeof cliente_nome !== "string" ||
+        cliente_nome.trim().length === 0 ||
+        cliente_nome.trim().length > 150
+    ) {
+        const error = new Error("Nome do cliente inválido.");
+        error.status = 400;
+        throw error;
+    }
+
+    if (
+        !/^\d{8}$/.test(cep_origem) ||
+        !/^\d{8}$/.test(cep_destino)
+    ) {
+        const error = new Error("Os CEPs devem conter 8 números.");
+        error.status = 400;
+        throw error;
     }
 
     if (!Number.isFinite(Number(peso)) || Number(peso) <= 0) {
-        throw new Error("O peso deve ser maior que zero.");
+        const error = new Error("O peso deve ser maior que zero.");
+        error.status = 400;
+        throw error;
     }
 
     const resultado = await pool.query(
@@ -33,7 +53,7 @@ async function criarPedido(dados) {
         (cliente_nome, cep_origem, cep_destino, peso)
         VALUES ($1, $2, $3, $4)
         RETURNING *`,
-        [cliente_nome, cep_origem, cep_destino, peso]
+        [cliente_nome.trim(), cep_origem, cep_destino, peso]
     );
 
     return resultado.rows[0];
