@@ -75,3 +75,71 @@ test("Deve rejeitar peso negativo", async () => {
 
     assert.equal(resposta.status, 400);
 });
+
+test("Deve executar o CRUD completo de um pedido", async () => {
+    // Criar
+    const criacao = await fetch(`${API_URL}/pedidos`, {
+        method: "POST",
+        headers: {
+            "Content-Type": "application/json"
+        },
+        body: JSON.stringify({
+            cliente_nome: "Teste CRUD Automatizado",
+            cep_origem: "96810000",
+            cep_destino: "90010000",
+            peso: 2.5
+        })
+    });
+
+    const pedidoCriado = await criacao.json();
+
+    assert.equal(criacao.status, 201);
+    assert.ok(pedidoCriado.id);
+
+    const id = pedidoCriado.id;
+
+    // Buscar
+    const busca = await fetch(`${API_URL}/pedidos/${id}`);
+    const pedidoEncontrado = await busca.json();
+
+    assert.equal(busca.status, 200);
+    assert.equal(pedidoEncontrado.id, id);
+
+    // Atualizar
+    const atualizacao = await fetch(`${API_URL}/pedidos/${id}`, {
+        method: "PUT",
+        headers: {
+            "Content-Type": "application/json"
+        },
+        body: JSON.stringify({
+            cliente_nome: "Pedido Atualizado",
+            cep_origem: "96810000",
+            cep_destino: "90010000",
+            peso: 5
+        })
+    });
+
+    const pedidoAtualizado = await atualizacao.json();
+
+    assert.equal(atualizacao.status, 200);
+    assert.equal(pedidoAtualizado.cliente_nome, "Pedido Atualizado");
+    assert.equal(Number(pedidoAtualizado.peso), 5);
+
+    // Excluir
+    const exclusao = await fetch(`${API_URL}/pedidos/${id}`, {
+        method: "DELETE"
+    });
+
+    assert.equal(exclusao.status, 204);
+
+    // Confirmar exclusão
+    const buscaAposExclusao = await fetch(`${API_URL}/pedidos/${id}`);
+
+    assert.equal(buscaAposExclusao.status, 404);
+});
+
+test("Deve rejeitar ID inválido", async () => {
+    const resposta = await fetch(`${API_URL}/pedidos/abc`);
+
+    assert.equal(resposta.status, 400);
+});
